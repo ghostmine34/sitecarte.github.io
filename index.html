@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Créateur de Cartes Pro</title>
+    <title>Créateur de Cartes Pro - Outil</title>
     <style>
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -16,6 +16,7 @@
             gap: 50px;
             padding: 20px;
             margin: 0;
+            user-select: none; /* Évite de sélectionner du texte en dragant l'image */
         }
 
         /* --- PANNEAU DE CONTRÔLE --- */
@@ -48,7 +49,7 @@
         input[type="range"] { padding: 0; }
         input:focus, select:focus { border-color: #4a90e2; }
 
-        /* --- STRUCTURE OFFICIELLE DE LA CARTE --- */
+        /* --- STRUCTURE DE LA CARTE --- */
         .card-container {
             perspective: 1000px;
         }
@@ -64,18 +65,17 @@
             flex-direction: column;
             padding: 14px;
             box-sizing: border-box;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: border 0.3s, background 0.3s;
             border: 6px solid #ffd700;
-            background-size: cover;
-            background-position: center;
         }
 
-        /* --- BANNIÈRE DU HAUT (RARETÉ + NOM) --- */
+        /* --- BANNIÈRE DE NOM (RARETÉ À GAUCHE, EFFET À DROITE) --- */
         .card-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.65);
+            justify-content: space-between;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(4px);
             padding: 8px 12px;
             border-radius: 8px;
@@ -84,19 +84,20 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        .card-rarity-badge {
-            font-size: 0.75rem;
+        .badge {
+            font-size: 0.7rem;
             font-weight: 900;
             text-transform: uppercase;
-            padding: 3px 8px;
+            padding: 3px 6px;
             border-radius: 4px;
             letter-spacing: 0.5px;
             color: #fff;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            white-space: nowrap;
         }
 
         .card-name {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: bold;
             letter-spacing: 0.5px;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
@@ -104,12 +105,19 @@
             overflow: hidden;
             text-overflow: ellipsis;
             flex-grow: 1;
+            text-align: left;
+            padding-left: 4px;
         }
 
-        /* --- ZONE DE L'IMAGE (PLUS GRANDE VERS LE BAS) --- */
+        #card-shine-badge {
+            background: #444;
+            display: none; /* Caché par défaut si "None" */
+        }
+
+        /* --- ZONE DE L'IMAGE (PLUS GRANDE ET DRAGGABLE) --- */
         .art-window {
             width: 100%;
-            height: 380px; /* Augmenté pour descendre plus bas sur la carte */
+            height: 380px;
             margin-top: 10px;
             border: 3px solid rgba(0, 0, 0, 0.5);
             border-radius: 6px;
@@ -118,53 +126,42 @@
             z-index: 1;
             box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
             background: #151518;
+            cursor: grab;
         }
+        .art-window:active { cursor: grabbing; }
 
         .art-image {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Remplit l'espace sans étirer bizarrement (conserve le ratio) */
+            object-fit: cover;
             position: absolute;
             top: 0;
             left: 0;
             transform-origin: center;
+            pointer-events: none; /* Évite que le navigateur bloque le drag de l'image nativement */
         }
 
-        /* --- DESIGN & STYLES DES RARETÉS --- */
-        .card.common { 
-            background: linear-gradient(135deg, #5a6268, #343a40); border-color: #6c757d; 
-        }
-        .card.common .card-rarity-badge { background: #6c757d; }
+        /* --- STYLES PAR RARETÉ --- */
+        .card.common { background: linear-gradient(135deg, #5a6268, #343a40); border-color: #6c757d; }
+        .card.common #card-rarity-badge { background: #6c757d; }
 
-        .card.rare { 
-            background: linear-gradient(135deg, #1e3c72, #2a5298); border-color: #007bff; 
-        }
-        .card.rare .card-rarity-badge { background: #007bff; }
+        .card.rare { background: linear-gradient(135deg, #1e3c72, #2a5298); border-color: #007bff; }
+        .card.rare #card-rarity-badge { background: #007bff; }
 
-        .card.epic { 
-            background: linear-gradient(135deg, #4b0082, #800080, #240046); border-color: #bd93f9; 
-        }
-        .card.epic .card-rarity-badge { background: #9b5de5; }
+        .card.epic { background: linear-gradient(135deg, #4b0082, #800080, #240046); border-color: #bd93f9; }
+        .card.epic #card-rarity-badge { background: #9b5de5; }
 
-        .card.legendary { 
-            background: linear-gradient(135deg, #ff6b6b, #ff8e53, #e65c00); border-color: #ff9f43; 
-        }
-        .card.legendary .card-rarity-badge { background: #ff9f43; color: #000; font-weight: bold; }
+        .card.legendary { background: linear-gradient(135deg, #ff6b6b, #ff8e53, #e65c00); border-color: #ff9f43; }
+        .card.legendary #card-rarity-badge { background: #ff9f43; color: #000; font-weight: bold; }
 
-        .card.mythic { 
-            background: linear-gradient(135deg, #ffe259, #ffa751); border-color: #ffda79; 
-        }
-        .card.mythic .card-rarity-badge { background: #ffcc00; color: #000; }
+        .card.mythic { background: linear-gradient(135deg, #ffe259, #ffa751); border-color: #ffda79; }
+        .card.mythic #card-rarity-badge { background: #ffcc00; color: #000; }
 
-        .card.og { 
-            background: radial-gradient(circle at center, #ff0000 0%, #7a0000 60%, #2b0000 100%); border-color: #ff3333; 
-        }
-        .card.og .card-rarity-badge { background: #ff0000; box-shadow: 0 0 8px rgba(255,0,0,0.6); }
+        .card.og { background: radial-gradient(circle at center, #ff0000 0%, #7a0000 60%, #2b0000 100%); border-color: #ff3333; }
+        .card.og #card-rarity-badge { background: #ff0000; box-shadow: 0 0 8px rgba(255,0,0,0.6); }
 
-        .card.relic { 
-            background: linear-gradient(45deg, #ff007f, #7f00ff, #00bfff, #00ff7f, #ff007f); background-size: 200% 200%; animation: gradientBG 8s ease infinite; border-color: #f1f2f6; 
-        }
-        .card.relic .card-rarity-badge { background: linear-gradient(to right, #ff007f, #00bfff); }
+        .card.relic { background: linear-gradient(45deg, #ff007f, #7f00ff, #00bfff, #00ff7f, #ff007f); background-size: 200% 200%; animation: gradientBG 8s ease infinite; border-color: #f1f2f6; }
+        .card.relic #card-rarity-badge { background: linear-gradient(to right, #ff007f, #00bfff); }
 
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
@@ -172,7 +169,7 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* --- EFFETS SHINE AJUSTÉS --- */
+        /* --- STYLES DES EFFETS SHINE REVISITÉS --- */
         .shine-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -184,22 +181,18 @@
         }
         
         .card.holo .shine-overlay {
-            opacity: 0.35;
-            background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.7) 50%, transparent 80%);
-        }
-        .card.first-gen .shine-overlay {
             opacity: 0.4;
-            background: radial-gradient(circle, #fff 8%, transparent 9%), radial-gradient(circle, #fff 8%, transparent 9%);
-            background-size: 25px 25px;
-            background-position: 0 0, 12.5px 12.5px;
-        }
-        .card.crystal .shine-overlay {
-            opacity: 0.5;
-            background: linear-gradient(45deg, rgba(255,255,255,0.15), rgba(0,0,0,0.15)), repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(255,255,255,0.15) 15px, rgba(255,255,255,0.15) 30px);
+            background: linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.7) 50%, transparent 75%);
         }
         .card.foil .shine-overlay {
             opacity: 0.25;
-            background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+            background: linear-gradient(to right, red, orange, yellow, green, blue, violet);
+        }
+        .card.gold .shine-overlay {
+            opacity: 0.45;
+            background: linear-gradient(135deg, rgba(255,215,0,0) 30%, rgba(255,255,255,0.9) 50%, rgba(255,215,0,0) 70%), linear-gradient(45deg, rgba(255,215,0,0.3), transparent);
+            background-size: 200% 200%;
+            animation: gradientBG 4s linear infinite;
         }
     </style>
 </head>
@@ -218,8 +211,8 @@
         </div>
 
         <div class="control-group">
-            <label for="input-scale">Zoom (Proportions gardées)</label>
-            <input type="range" id="input-scale" min="1" max="4" step="0.1" value="1">
+            <label for="input-scale">Zoom (Molette ou curseur)</label>
+            <input type="range" id="input-scale" min="1" max="5" step="0.1" value="1">
         </div>
 
         <div class="control-group">
@@ -240,25 +233,28 @@
             <select id="select-shine">
                 <option value="none">None</option>
                 <option value="holo">Holographic</option>
-                <option value="first-gen">First generation</option>
-                <option value="crystal">Crystal</option>
                 <option value="foil">Foil</option>
+                <option value="gold">Gold</option>
             </select>
         </div>
     </div>
 
     <!-- RENDER DE LA CARTE -->
     <div class="card-container">
-        <!-- Initialisé en épic par défaut pour voir la couleur mauve -->
         <div class="card epic" id="card-element">
             <div class="shine-overlay"></div>
             
             <div class="card-header">
-                <div class="card-rarity-badge" id="card-badge">Epic</div>
+                <!-- Rareté à gauche -->
+                <div class="badge" id="card-rarity-badge">Epic</div>
+                <!-- Nom au milieu -->
                 <div class="card-name" id="card-title">Doge</div>
+                <!-- Effet à droite -->
+                <div class="badge" id="card-shine-badge">Holo</div>
             </div>
 
-            <div class="art-window">
+            <!-- Fenêtre de l'image cliquable et déplaçable -->
+            <div class="art-window" id="art-window">
                 <img id="card-art" class="art-image" src="https://images.uncyclomedia.co/uncyclopedia/en/thumb/b/b3/Doge_original_image.png/320px-Doge_original_image.png" alt="Art">
             </div>
         </div>
@@ -273,8 +269,22 @@
 
         const cardElement = document.getElementById('card-element');
         const cardTitle = document.getElementById('card-title');
-        const cardBadge = document.getElementById('card-badge');
+        const cardRarityBadge = document.getElementById('card-rarity-badge');
+        const cardShineBadge = document.getElementById('card-shine-badge');
         const cardArt = document.getElementById('card-art');
+        const artWindow = document.getElementById('art-window');
+
+        // Variables d'état pour la position et le zoom de l'image
+        let scale = 1;
+        let posX = 0;
+        let posY = 0;
+        let isDragging = false;
+        let startX, startY;
+
+        // Met à jour la transformation CSS de l'image (Zoom + Déplacement)
+        function updateImageTransform() {
+            cardArt.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        }
 
         // Changement de nom
         inputName.addEventListener('input', (e) => {
@@ -288,35 +298,80 @@
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     cardArt.src = event.target.result;
+                    // Reset positions lors d'une nouvelle image
+                    posX = 0; posY = 0; scale = 1;
+                    inputScale.value = 1;
+                    updateImageTransform();
                 }
                 reader.readAsDataURL(file);
             }
         });
 
-        // Zoom proportionnel
+        // Zoom via le curseur
         inputScale.addEventListener('input', (e) => {
-            cardArt.style.transform = `scale(${e.target.value})`;
+            scale = e.target.value;
+            updateImageTransform();
         });
 
-        // Rareté + Badge dynamique
+        // Rareté
         selectRarity.addEventListener('change', (e) => {
             const value = e.target.value;
+            // Réinitialise les classes de rareté mais garde l'effet brillance actif
             cardElement.className = `card ${value}`;
+            if (selectShine.value !== 'none') cardElement.classList.add(selectShine.value);
             
-            // Remet l'effet shine s'il y en avait un d'actif
-            if (selectShine.value !== 'none') {
-                cardElement.classList.add(selectShine.value);
-            }
-            
-            cardBadge.textContent = value;
+            cardRarityBadge.textContent = value;
         });
 
-        // Brillance
+        // Gestion de la brillance et du badge de droite
         selectShine.addEventListener('change', (e) => {
-            cardElement.classList.remove('none', 'holo', 'first-gen', 'crystal', 'foil');
-            if (e.target.value !== 'none') {
-                cardElement.classList.add(e.target.value);
+            const value = e.target.value;
+            cardElement.classList.remove('none', 'holo', 'foil', 'gold');
+            
+            if (value === 'none') {
+                cardShineBadge.style.display = 'none';
+            } else {
+                cardElement.classList.add(value);
+                cardShineBadge.style.display = 'block';
+                // Label propre pour le badge de droite
+                if(value === 'holo') cardShineBadge.textContent = "Holo";
+                if(value === 'foil') cardShineBadge.textContent = "Foil";
+                if(value === 'gold') {
+                    cardShineBadge.textContent = "Gold";
+                    cardShineBadge.style.background = "#ffd700";
+                    cardShineBadge.style.color = "#000";
+                } else {
+                    cardShineBadge.style.background = "rgba(255,255,255,0.2)";
+                    cardShineBadge.style.color = "#fff";
+                }
             }
+        });
+
+        /* --- SYSTÈME DE DRAG & DROP POUR L'IMAGE --- */
+        artWindow.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - posX;
+            startY = e.clientY - posY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            posX = e.clientX - startX;
+            posY = e.clientY - startY;
+            updateImageTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // BONUS : Permet aussi d'utiliser la molette de la souris sur la carte pour zoomer !
+        artWindow.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            let zoomFactor = e.deltaY < 0 ? 0.1 : -0.1;
+            scale = Math.min(Math.max(1, parseFloat(scale) + zoomFactor), 5);
+            inputScale.value = scale;
+            updateImageTransform();
         });
     </script>
 </body>
