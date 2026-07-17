@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Créateur de Cartes Pro - Outil</title>
+    <!-- Chargement de la bibliothèque de capture d'écran HTML -> PNG -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -48,6 +51,23 @@
         }
         input[type="range"] { padding: 0; }
         input:focus, select:focus { border-color: #4a90e2; }
+
+        /* --- BOUTON TÉLÉCHARGER --- */
+        .btn-download {
+            margin-top: 10px;
+            padding: 12px;
+            background: #00bfff;
+            color: #121214;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
+        }
+        .btn-download:hover { background: #0099cc; }
+        .btn-download:active { transform: scale(0.98); }
 
         /* --- STRUCTURE DE LA CARTE --- */
         .card-container {
@@ -188,11 +208,29 @@
             opacity: 0.25;
             background: linear-gradient(to right, red, orange, yellow, green, blue, violet);
         }
+
+        /* --- EFFET ULTRA GOLD JAUNE FLASHY --- */
+        .card.gold .art-image {
+            filter: sepia(1) saturate(10) hue-rotate(10deg) brightness(0.95);
+        }
+        .card.gold .art-window::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 220, 0, 0.65); 
+            mix-blend-mode: hard-light;
+            pointer-events: none;
+            z-index: 2;
+        }
         .card.gold .shine-overlay {
-            opacity: 0.45;
-            background: linear-gradient(135deg, rgba(255,215,0,0) 30%, rgba(255,255,255,0.9) 50%, rgba(255,215,0,0) 70%), linear-gradient(45deg, rgba(255,215,0,0.3), transparent);
+            opacity: 0.85;
+            mix-blend-mode: overlay;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 200, 0) 25%, 
+                rgba(255, 255, 255, 1) 50%, 
+                rgba(255, 255, 200, 0) 75%);
             background-size: 200% 200%;
-            animation: gradientBG 4s linear infinite;
+            animation: gradientBG 2.5s linear infinite;
         }
     </style>
 </head>
@@ -237,6 +275,9 @@
                 <option value="gold">Gold</option>
             </select>
         </div>
+
+        <!-- LE NOUVEAU BOUTON -->
+        <button class="btn-download" id="btn-download">Télécharger la carte</button>
     </div>
 
     <!-- RENDER DE LA CARTE -->
@@ -245,15 +286,11 @@
             <div class="shine-overlay"></div>
             
             <div class="card-header">
-                <!-- Rareté à gauche -->
                 <div class="badge" id="card-rarity-badge">Epic</div>
-                <!-- Nom au milieu -->
                 <div class="card-name" id="card-title">Doge</div>
-                <!-- Effet à droite -->
                 <div class="badge" id="card-shine-badge">Holo</div>
             </div>
 
-            <!-- Fenêtre de l'image cliquable et déplaçable -->
             <div class="art-window" id="art-window">
                 <img id="card-art" class="art-image" src="https://images.uncyclomedia.co/uncyclopedia/en/thumb/b/b3/Doge_original_image.png/320px-Doge_original_image.png" alt="Art">
             </div>
@@ -266,6 +303,7 @@
         const inputScale = document.getElementById('input-scale');
         const selectRarity = document.getElementById('select-rarity');
         const selectShine = document.getElementById('select-shine');
+        const btnDownload = document.getElementById('btn-download');
 
         const cardElement = document.getElementById('card-element');
         const cardTitle = document.getElementById('card-title');
@@ -274,31 +312,26 @@
         const cardArt = document.getElementById('card-art');
         const artWindow = document.getElementById('art-window');
 
-        // Variables d'état pour la position et le zoom de l'image
         let scale = 1;
         let posX = 0;
         let posY = 0;
         let isDragging = false;
         let startX, startY;
 
-        // Met à jour la transformation CSS de l'image (Zoom + Déplacement)
         function updateImageTransform() {
             cardArt.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
         }
 
-        // Changement de nom
         inputName.addEventListener('input', (e) => {
             cardTitle.textContent = e.target.value || "Sans nom";
         });
 
-        // Importation d'image
         inputImage.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     cardArt.src = event.target.result;
-                    // Reset positions lors d'une nouvelle image
                     posX = 0; posY = 0; scale = 1;
                     inputScale.value = 1;
                     updateImageTransform();
@@ -307,23 +340,18 @@
             }
         });
 
-        // Zoom via le curseur
         inputScale.addEventListener('input', (e) => {
             scale = e.target.value;
             updateImageTransform();
         });
 
-        // Rareté
         selectRarity.addEventListener('change', (e) => {
             const value = e.target.value;
-            // Réinitialise les classes de rareté mais garde l'effet brillance actif
             cardElement.className = `card ${value}`;
             if (selectShine.value !== 'none') cardElement.classList.add(selectShine.value);
-            
             cardRarityBadge.textContent = value;
         });
 
-        // Gestion de la brillance et du badge de droite
         selectShine.addEventListener('change', (e) => {
             const value = e.target.value;
             cardElement.classList.remove('none', 'holo', 'foil', 'gold');
@@ -333,7 +361,6 @@
             } else {
                 cardElement.classList.add(value);
                 cardShineBadge.style.display = 'block';
-                // Label propre pour le badge de droite
                 if(value === 'holo') cardShineBadge.textContent = "Holo";
                 if(value === 'foil') cardShineBadge.textContent = "Foil";
                 if(value === 'gold') {
@@ -347,7 +374,7 @@
             }
         });
 
-        /* --- SYSTÈME DE DRAG & DROP POUR L'IMAGE --- */
+        /* --- GESTION DU DRAG & DROP DE L'IMAGE --- */
         artWindow.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX - posX;
@@ -365,13 +392,33 @@
             isDragging = false;
         });
 
-        // BONUS : Permet aussi d'utiliser la molette de la souris sur la carte pour zoomer !
         artWindow.addEventListener('wheel', (e) => {
             e.preventDefault();
             let zoomFactor = e.deltaY < 0 ? 0.1 : -0.1;
             scale = Math.min(Math.max(1, parseFloat(scale) + zoomFactor), 5);
             inputScale.value = scale;
             updateImageTransform();
+        });
+
+        /* --- SCRIPT DE TÉLÉCHARGEMENT --- */
+        btnDownload.addEventListener('click', () => {
+            // Option de rendu propre pour html2canvas
+            const options = {
+                useCORS: true,       // Permet de charger des images externes si besoin
+                allowTaint: true,
+                backgroundColor: null, // Fond transparent autour des coins arrondis
+                scale: 2             // Double la résolution pour avoir une super qualité d'image !
+            };
+
+            // Capture l'élément .card
+            html2canvas(cardElement, options).then(canvas => {
+                // Crée un lien fantôme pour lancer le téléchargement automatiquement
+                const link = document.createElement('a');
+                const cardName = inputName.value.replace(/[^a-z0-9]/gi, '_').toLowerCase(); // Nettoie le nom de fichier
+                link.download = `carte_${cardName || 'sans_nom'}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
         });
     </script>
 </body>
