@@ -18,23 +18,31 @@
             background: linear-gradient(to right, red, orange, yellow, green, blue, violet);
         }
 
-        /* Nouvel effet Gold ultra jaune */
+        /* --- EFFET ULTRA GOLD JAUNE FLASHY --- */
+        .card.gold .art-image {
+            /* Force l'image elle-même à devenir jaune/dorée et très contrastée */
+            filter: sepia(1) saturate(10) hue-rotate(10deg) brightness(0.95);
+        }
+        
         .card.gold .art-window::after {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255, 215, 0, 0.35); /* Filtre jaune/or sur l'image */
-            mix-blend-mode: color;
+            /* Incrustation d'un jaune pur et éclatant */
+            background: rgba(255, 220, 0, 0.65); 
+            mix-blend-mode: hard-light;
             pointer-events: none;
             z-index: 2;
         }
+        
         .card.gold .shine-overlay {
-            opacity: 0.7;
+            opacity: 0.85;
             mix-blend-mode: overlay;
+            /* Un éclair de lumière blanche/jaune qui traverse la carte */
             background: linear-gradient(135deg, 
-                rgba(255, 235, 120, 0) 30%, 
-                rgba(255, 245, 180, 1) 50%, 
-                rgba(255, 235, 120, 0) 70%);
+                rgba(255, 255, 200, 0) 25%, 
+                rgba(255, 255, 255, 1) 50%, 
+                rgba(255, 255, 200, 0) 75%);
             background-size: 200% 200%;
-            animation: gradientBG 3s linear infinite;
+            animation: gradientBG 2.5s linear infinite;
         }
