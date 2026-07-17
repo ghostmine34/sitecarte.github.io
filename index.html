@@ -244,8 +244,14 @@
         </div>
 
         <div class="control-group">
-            <label for="input-image">Importer une image</label>
+            <label for="input-image">Importer une image locale</label>
             <input type="file" id="input-image" accept="image/*">
+        </div>
+
+        <!-- LE NOUVEAU CHAMP POUR LE LIEN WEB -->
+        <div class="control-group">
+            <label for="input-url">Ou lien URL de l'image</label>
+            <input type="url" id="input-url" placeholder="https://exemple.com/image.png">
         </div>
 
         <div class="control-group">
@@ -276,7 +282,6 @@
             </select>
         </div>
 
-        <!-- LE NOUVEAU BOUTON -->
         <button class="btn-download" id="btn-download">Télécharger la carte</button>
     </div>
 
@@ -300,6 +305,7 @@
     <script>
         const inputName = document.getElementById('input-name');
         const inputImage = document.getElementById('input-image');
+        const inputUrl = document.getElementById('input-url'); // Input URL
         const inputScale = document.getElementById('input-scale');
         const selectRarity = document.getElementById('select-rarity');
         const selectShine = document.getElementById('select-shine');
@@ -322,21 +328,37 @@
             cardArt.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
         }
 
+        function resetImageTransform() {
+            posX = 0; posY = 0; scale = 1;
+            inputScale.value = 1;
+            updateImageTransform();
+        }
+
         inputName.addEventListener('input', (e) => {
             cardTitle.textContent = e.target.value || "Sans nom";
         });
 
+        // 1. Importation via Fichier Local
         inputImage.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     cardArt.src = event.target.result;
-                    posX = 0; posY = 0; scale = 1;
-                    inputScale.value = 1;
-                    updateImageTransform();
+                    inputUrl.value = ""; // Vide le champ URL
+                    resetImageTransform();
                 }
                 reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. Importation via Lien URL Web
+        inputUrl.addEventListener('input', (e) => {
+            const url = e.target.value.trim();
+            if (url) {
+                cardArt.src = url;
+                inputImage.value = ""; // Vide le sélecteur de fichier
+                resetImageTransform();
             }
         });
 
@@ -402,22 +424,22 @@
 
         /* --- SCRIPT DE TÉLÉCHARGEMENT --- */
         btnDownload.addEventListener('click', () => {
-            // Option de rendu propre pour html2canvas
             const options = {
-                useCORS: true,       // Permet de charger des images externes si besoin
-                allowTaint: true,
-                backgroundColor: null, // Fond transparent autour des coins arrondis
-                scale: 2             // Double la résolution pour avoir une super qualité d'image !
+                useCORS: true,       // Essentiel pour que html2canvas accepte de télécharger les images chargées via URL externe !
+                allowTaint: false,
+                backgroundColor: null, 
+                scale: 2             
             };
 
-            // Capture l'élément .card
             html2canvas(cardElement, options).then(canvas => {
-                // Crée un lien fantôme pour lancer le téléchargement automatiquement
                 const link = document.createElement('a');
-                const cardName = inputName.value.replace(/[^a-z0-9]/gi, '_').toLowerCase(); // Nettoie le nom de fichier
+                const cardName = inputName.value.replace(/[^a-z0-9]/gi, '_').toLowerCase();
                 link.download = `carte_${cardName || 'sans_nom'}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
+            }).catch(err => {
+                console.error("Erreur de capture : ", err);
+                alert("Si l'image ne télécharge pas, le site hébergeant l'image bloque peut-être les partages externes (CORS). Essaie de l'enregistrer et de l'importer localement !");
             });
         });
     </script>
