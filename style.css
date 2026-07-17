@@ -18,31 +18,31 @@
             background: linear-gradient(to right, red, orange, yellow, green, blue, violet);
         }
 
-/* --- EFFET GOLD ADOUCI (OR BLANC / CHAMPAGNE) --- */
+/* --- EFFET GOLD ÉPURÉ (PLATINE / OR BLANC) --- */
         .card.gold .art-image {
-            /* On enlève la saturation extrême. On garde un léger ton chaud/sépia très doux */
-            filter: sepia(0.3) saturate(1.2) brightness(1);
+            /* On supprime totalement le filtre sépia et la saturation jaune */
+            filter: none; 
         }
         
         .card.gold .art-window::after {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            /* Un voile doré très léger et transparent au lieu du jaune pur */
-            background: rgba(232, 210, 160, 0.25); 
-            mix-blend-mode: color-burn;
+            /* Un voile blanc/argenté ultra léger pour donner l'aspect métallisé */
+            background: rgba(255, 255, 255, 0.05); 
+            mix-blend-mode: overlay;
             pointer-events: none;
             z-index: 2;
         }
         
         .card.gold .shine-overlay {
-            opacity: 0.6;
+            opacity: 0.75;
             mix-blend-mode: color-dodge;
-            /* Le reflet devient blanc/argenté avec un très léger éclat crème */
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0) 30%, 
-                rgba(255, 255, 255, 0.8) 50%, 
-                rgba(255, 255, 255, 0) 70%);
+            /* Reflet 100% blanc et argenté, aucun pigment jaune */
+            background: linear-gradient(115deg, 
+                rgba(255, 255, 255, 0) 35%, 
+                rgba(255, 255, 255, 0.9) 50%, 
+                rgba(255, 255, 255, 0) 65%);
             background-size: 200% 200%;
-            animation: gradientBG 3.5s linear infinite;
+            animation: gradientBG 4s linear infinite;
         }
